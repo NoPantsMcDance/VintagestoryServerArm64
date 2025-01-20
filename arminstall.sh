@@ -12,7 +12,7 @@ fi
 # Function to check if a command is available
 # Function to check if a command is available
 command_exists() {
-  which "$1" >/dev/null 2>&1
+  command -v "$1" >/dev/null 2>&1
 }
 
 # Function to detect the user's Linux distribution
@@ -192,18 +192,23 @@ tar -xzf vs_server.tar.gz
 #Remove unwanted files
 rm -rf VintagestoryServer VintagestoryServer.deps.json VintagestoryServer.dll VintagestoryServer.pdb VintagestoryServer.runtimeconfig.json Lib
 
-# Download the release for ARM64 and extract it
+# Fetch the latest release from the GitHub API
+LATEST_RELEASE_URL="https://api.github.com/repos/anegostudios/VintagestoryServerArm64/releases/latest"
 
-# https://github.com/anegostudios/VintagestoryServerArm64/releases/download/1.19.0-rc.6/vs_server_linux-arm64-1.19.tar.gz
-ARM64_RELEASE_URL="https://github.com/anegostudios/VintagestoryServerArm64/releases/download/1.19.0-rc.6/vs_server_linux-arm64-1.19.tar.gz"
-curl -o vs_server_arm64.tar.gz -L "$ARM64_RELEASE_URL" # Use -L for redirection
+echo "Fetching the latest release information..."
+ARM64_RELEASE_URL=$(curl -s "$LATEST_RELEASE_URL" | jq -r '.assets[] | select(.name | test("vs_server_linux-arm64.*.tar.gz")) | .browser_download_url')
+
+# Check if the URL was successfully retrieved
+if [ -z "$ARM64_RELEASE_URL" ]; then
+  echo "Error: Unable to fetch the latest ARM64 release URL."
+  exit 1
+fi
+
+echo "Latest ARM64 release URL: $ARM64_RELEASE_URL"
+
+# Proceed with download and extraction
+curl -o vs_server_arm64.tar.gz -L "$ARM64_RELEASE_URL"
 tar -xzf vs_server_arm64.tar.gz
-
-# Copy the contents of the "server" directory from the extracted files to the server location
-cp -r server/* "$INSTALL_DIR/"
-
-# Remove the "server" directory and its contents
-rm -rf server
 
 # Remove temporary files
 rm -f vs_server.tar.gz vs_server_arm64.tar.gz
